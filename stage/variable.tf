@@ -35,19 +35,7 @@ variable "Back-End_instance_template" {    # Front-End Instance user_data config
   default = <<EOF
 #!/bin/bash -xe
 apt update -y
-apt install -y python3 python3-pip
-pip3 install --upgrade pip
-pip install flask
+apt install -y python3 python3-pip apache2
+pip3 install flask
 EOF
-}
-
-variable "Back-End_Port" {
-  type = number
-  default = 8080
-}
-
-variable "Back-End_ASG_Policy" {      # ASG Average CPU
-  type = number
-  default = 40.0
-  
 }

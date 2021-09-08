@@ -226,7 +226,7 @@ resource "aws_security_group" "HTTP" {          # Front-End Load Balancer SG
   
 }
 
-resource "aws_security_group" "private_ssh" {      # Private Instance SG
+resource "aws_security_group" "private_ssh" {      # Private SSH SG
     name = "private-ssh"
     vpc_id = aws_vpc.vpc.id
 
@@ -288,8 +288,8 @@ resource "aws_launch_template" "Front-End" {        # Front-End Template
     name_prefix = "Front-End_Template"
     image_id = data.aws_ami.ubuntu.id
     instance_type = "${var.instance["Front-End"]}"
-    user_data = "${base64encode(var.Front-End_instance_template)}"    # user_data
-    key_name = "front-end_key"                      # Key Pair
+    user_data = "${base64encode(var.Front-End_instance_template)}"      # user_data
+    key_name = "front-end_key"                                          # Key Pair
     vpc_security_group_ids = [ "${aws_security_group.HTTP.id}" ]
 }
 
@@ -312,19 +312,32 @@ resource "aws_autoscaling_group" "Front-End" {      # Front-End ASG
     }
 }
 
+# resource "aws_autoscaling_policy" "Front-End" {
+#     name = "Front-End-ASG-Policy"
+#     autoscaling_group_name = aws_autoscaling_group.Front-End.name
+#     policy_type = "TargetTrackingScaling"
+#     target_tracking_configuration {
+#       predefined_metric_specification {
+#           predefined_metric_type = "ASGAVerageCPUUilization"
+#       }
+#       target_value = "${var.Back-End_ASG_Policy}"
+#     }
+  
+# }
+
 resource "aws_launch_template" "Back-End" {        # Back-End Template
     name_prefix = "Back-End_Template"
     image_id = data.aws_ami.ubuntu.id
     instance_type = "${var.instance["Back-End"]}"
-    user_data = "${base64encode(var.Back-End_instance_template)}"    # user_data
-    key_name = "back-end_key"                      # Key Pair
+    user_data = "${base64encode(var.Back-End_instance_template)}"       # user_data
+    key_name = "back-end_key"                                           # Key Pair
     vpc_security_group_ids = [ "${aws_security_group.HTTP.id}" ]
 }
 
 resource "aws_autoscaling_group" "Back-End" {      # Back-End ASG
     max_size = 4
     min_size = 2
-    vpc_zone_identifier = [                         # Autoscaling Subnet
+    vpc_zone_identifier = [                        # Autoscaling Subnet
         aws_subnet.private_subnet_3.id,
         aws_subnet.private_subnet_4.id
     ]
@@ -361,7 +374,7 @@ resource "aws_lb" "Front-End" {
         aws_subnet.public_subnet_2.id
     ]
 
-    # access_logs {                                         # Access Log Save as S3
+    # access_logs {                                         # Access Log save as S3
     #   bucket = aws_s3_bucket.lb_logs.bucket
     #   prefix = "Front-End_Log"
     #   enabled = true
@@ -379,19 +392,17 @@ resource "aws_lb_listener" "Front-End" {
     }
 }
 
-resource "aws_lb_target_group" "Back-End" {                # Back-End Load Balancer
+resource "aws_lb_target_group" "Back-End" {                 # Back-End Load Balancer
     name = "Back-End-LB-TargetGroup"
-    port = 80
-    protocol = "HTTP"
+    port = "${var.Back-End_Port}"
+    protocol = "TCP"
     vpc_id = aws_vpc.vpc.id
-
 }
 
 resource "aws_lb" "Back-End" {
     name = "Back-End-LB"
-    load_balancer_type = "application"
+    load_balancer_type = "network"
     internal = "true"
-    security_groups = [aws_security_group.private_ssh.id]
     subnets = [ 
         aws_subnet.private_subnet_3.id,
         aws_subnet.private_subnet_4.id
@@ -406,8 +417,8 @@ resource "aws_lb" "Back-End" {
 
 resource "aws_lb_listener" "Back-End" {
     load_balancer_arn = aws_lb.Back-End.arn
-    port = "80"
-    protocol = "HTTP"
+    port = "${var.Back-End_Port}"
+    protocol = "TCP"
 
     default_action {
         target_group_arn = aws_lb_target_group.Back-End.id
