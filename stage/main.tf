@@ -37,7 +37,7 @@ resource "aws_vpc" "vpc" {
 resource "aws_subnet" "public_subnet_1" {
   vpc_id            = aws_vpc.vpc.id
   cidr_block        = var.cidrs[0]
-  availability_zone = data.aws_availability_zones.azs.names[0]
+  availability_zone = data.aws_availability_zones.azs.names[0] # 2a
 }
 
 resource "aws_subnet" "public_subnet_2" {
@@ -290,7 +290,7 @@ resource "aws_launch_template" "Front-End" { # Front-End Template
   instance_type          = var.instance["Front-End"]
   user_data              = base64encode(var.Front-End_instance_template) # user_data
   key_name               = var.Front-End_Key                             # Key Pair
-  vpc_security_group_ids = ["${aws_security_group.HTTP.id}"]
+  vpc_security_group_ids = ["${aws_security_group.HTTP.id}", "${aws_security_group.private_ssh.id}"]
 }
 
 resource "aws_autoscaling_group" "Front-End" { # Front-End ASG
@@ -331,7 +331,7 @@ resource "aws_launch_template" "Back-End" { # Back-End Template
   instance_type          = var.instance["Back-End"]
   user_data              = base64encode(var.Back-End_instance_template) # user_data
   key_name               = var.Back-End_Key                             # Key Pair
-  vpc_security_group_ids = ["${aws_security_group.HTTP.id}"]
+  vpc_security_group_ids = ["${aws_security_group.HTTP.id}", "${aws_security_group.private_ssh.id}"]
 }
 
 resource "aws_autoscaling_group" "Back-End" { # Back-End ASG
